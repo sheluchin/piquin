@@ -52,6 +52,14 @@ bb stack          # multi-select across sibling categories
 bb nested         # three-level hierarchy with ROT13 preview
 ```
 
+A larger, real-world example builds GraphQL queries against the Star Wars
+API and is kept as a subproject with its own deps (Pathom3) in
+[`examples/swapi`](examples/swapi):
+
+```bash
+cd examples/swapi && bb swapi
+```
+
 ## The protocol at a glance
 
 | Method                                  | Returns                          | Called when                                |

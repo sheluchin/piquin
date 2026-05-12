@@ -19,4 +19,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `piquine.fzf.client` — minimal fzf `--listen` HTTP API helpers.
 - Three example pickers: command-menu (two-level), stack (multi-select
   across siblings), nested (three-level with ROT13 preview).
+- `examples/swapi/` — non-trivial subproject: interactive GraphQL query
+  builder for the SWAPI endpoint, using Pathom3 schema introspection. The
+  use case that motivated piquine's predecessor, PhuzQL.
 - Documentation in `docs/PICKERS.md`.

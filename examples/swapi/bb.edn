@@ -1,0 +1,9 @@
+{:deps {io.github.sheluchin/piquine  {:local/root "../.."}
+        com.wsscode/pathom3         {:mvn/version "2025.01.16-alpha"}
+        com.wsscode/pathom3-graphql {:mvn/version "2022.09.12-alpha"}
+        cheshire/cheshire           {:mvn/version "5.13.0"}
+        org.clojure/data.json       {:mvn/version "2.4.0"}}
+ :paths ["src"]
+ :tasks
+ {swapi (shell "bb -m swapi.main")
+  nrepl (shell "bb nrepl-server 1999")}}
