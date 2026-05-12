@@ -72,14 +72,28 @@
       (str (namespace item) "/" (name item))
       item))
 
-  (preview [_ _selections state]
-    (let [eql (tree->eql (:query-tree state {}))]
+  (preview [this selections state]
+    ;; Show what the query WOULD look like if Enter were pressed now: marked
+    ;; selections are added as prospective leaves at the current path.
+    (let [path     (:path state [])
+          marked   (filter keyword? selections)
+          prospect (reduce (fn [tree field]
+                             (let [pv (vec (concat path [field]))]
+                               (if (nil? (get-in tree pv))
+                                 (assoc-in tree pv nil)
+                                 tree)))
+                           (:query-tree state {})
+                           marked)
+          eql      (tree->eql prospect)]
       (str
        "Path:\n  "
-       (if (seq (:path state))
-         (str/join "\n  " (map #(picker/format-item (->SwapiPicker) %) (:path state)))
+       (if (seq path)
+         (str/join "\n  " (map #(picker/format-item this %) path))
          "(root)")
-       "\n\nQuery:\n"
+       (when (seq marked)
+         (str "\n\nMarked at this level:\n  "
+              (str/join "\n  " (map #(picker/format-item this %) marked))))
+       "\n\nQuery (with marks applied as leaves):\n"
        (with-out-str
          (binding [pprint/*print-right-margin* 70]
            (pprint/pprint eql)))
