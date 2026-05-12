@@ -17,8 +17,8 @@
    [swapi.api :as api]))
 
 (def ^:private root-attrs #{:swapi.types/Root})
-(def ^:private back-sentinel "← back")
-(def ^:private done-sentinel "✓ done")
+(def back-sentinel "← back")
+(def done-sentinel "✓ done")
 
 ;; ---------------------------------------------------------------------------
 ;; Context derivation
