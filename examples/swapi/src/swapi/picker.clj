@@ -41,15 +41,31 @@
 ;; EQL assembly
 ;; ---------------------------------------------------------------------------
 
-(defn tree->eql
-  "Convert the nested query-tree to an EQL query.
-  Map values that are nil become bare keywords (leaves); non-nil values
-  become joins."
+(defn- prune-empty
+  "Drop join branches that have no leaves anywhere underneath them. GraphQL
+  doesn't accept empty selection sets, so a partially-drilled subtree with
+  no leaves is invalid; remove it before assembling the query."
   [tree]
-  (vec (for [[k v] tree]
-         (if (nil? v)
-           k
-           {k (tree->eql v)}))))
+  (when (map? tree)
+    (let [pruned (reduce-kv (fn [m k v]
+                              (cond
+                                (nil? v)              (assoc m k nil)  ; leaf
+                                (not (map? v))        (assoc m k v)
+                                :else (let [p (prune-empty v)]
+                                        (if (seq p) (assoc m k p) m))))
+                            {}
+                            tree)]
+      (when (seq pruned) pruned))))
+
+(defn tree->eql
+  "Convert the nested query-tree to an EQL query, dropping any joins with
+  no leaves under them."
+  [tree]
+  (let [pruned (prune-empty tree)]
+    (vec (for [[k v] pruned]
+           (if (nil? v)
+             k
+             {k (tree->eql v)})))))
 
 ;; ---------------------------------------------------------------------------
 ;; Picker
@@ -144,9 +160,24 @@
     (let [eql (tree->eql (:query-tree state {}))]
       (println "\nQuery:")
       (pprint/pprint eql)
-      (when (seq eql)
-        (println "\nResult:")
-        (pprint/pprint (api/run-query eql)))
+      (cond
+        (empty? eql)
+        (println "\n(no query — nothing to run)")
+
+        :else
+        (do
+          (println "\nResult:")
+          (try
+            (pprint/pprint (api/run-query eql))
+            (catch Exception e
+              (println "Query failed:")
+              (println " " (ex-message e))
+              (let [cause (ex-message (ex-cause e))]
+                (when cause (println "  cause:" cause)))
+              (println "\nTip: drilling into a field without marking any leaves under it")
+              (println "produces an empty selection set, which GraphQL rejects. Either")
+              (println "mark at least one leaf at every level, or back out before pressing")
+              (println "Ctrl-D.")))))
       eql)))
 
 (defn create-swapi-picker [] (->SwapiPicker))
