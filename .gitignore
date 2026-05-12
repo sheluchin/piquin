@@ -1,0 +1,22 @@
+.cpcache/
+.clj-kondo/
+.lsp/
+.nrepl-port
+.nfnl.fnl
+target/
+classes/
+*.class
+
+# editor / tooling
+.idea/
+*.iml
+.vscode/
+.cursor/
+.clojure-mcp/
+.aider*
+.envrc
+.backups/
+
+# OS
+.DS_Store
+Thumbs.db

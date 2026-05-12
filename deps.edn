@@ -1,0 +1,12 @@
+{:deps {com.fulcrologic/statecharts {:mvn/version "1.2.22"}
+        com.taoensso/timbre         {:mvn/version "6.7.0"}
+        cheshire/cheshire           {:mvn/version "5.13.0"}
+        http-kit/http-kit           {:mvn/version "2.8.0"}
+        io.github.joakimen/fzf.clj  {:git/url "git@github.com:sheluchin/fzf.clj.git"
+                                     :git/sha "a034c27e99df429a05c0dfb91759eab93aba181f"}}
+ :paths ["src"]
+ :aliases
+ {:test {:extra-paths ["test"]
+         :extra-deps  {io.github.cognitect-labs/test-runner
+                       {:git/tag "v0.5.1" :git/sha "dfb30dd"}}
+         :main-opts ["-m" "cognitect.test-runner"]}}}
