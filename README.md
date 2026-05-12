@@ -16,6 +16,19 @@ namespaces and option names may still shift.
 - [Babashka](https://babashka.org/) (`bb`) — or any Clojure runtime
 - [`fzf`](https://github.com/junegunn/fzf) ≥ 0.39 on `PATH`
 
+## Troubleshooting
+
+> `failed to listen on localhost:9878`
+
+A previous run left an orphaned fzf process holding the port. Kill it:
+
+```bash
+pkill -f "fzf --listen"
+```
+
+This can happen when the parent `bb` process is killed without letting it
+exit cleanly (closing the terminal mid-run, `pkill bb`, etc.).
+
 ## Quick start
 
 A complete picker in ~15 lines:
