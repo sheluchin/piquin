@@ -126,14 +126,22 @@
   (multi-select? [_] true)
 
   (handle-selection [_ items state]
-    (let [path (:path state [])
-          items (remove nil? items)]
+    (let [path        (:path state [])
+          items       (remove nil? items)
+          add-leaves  (fn [s leaves]
+                        (reduce (fn [s f]
+                                  (let [pv (vec (concat [:query-tree] path [f]))]
+                                    (if (nil? (get-in s pv))
+                                      (assoc-in s pv nil)
+                                      s)))
+                                s
+                                (filter keyword? leaves)))]
       (cond
-        ;; ✓ done -> terminate
+        ;; ✓ done -> commit any pending marks as leaves, then terminate
         (some #{done-sentinel} items)
-        {:done? true :state state}
+        {:done? true :state (add-leaves state items)}
 
-        ;; ← back -> pop the path
+        ;; ← back -> pop the path (ignores any tab marks at this level)
         (some #{back-sentinel} items)
         {:done? false :state (update state :path (comp vec butlast))}
 
@@ -147,14 +155,7 @@
 
         ;; Multi-selection -> add each as a leaf at current path
         :else
-        {:done? false
-         :state (reduce (fn [s field]
-                          (if (and (keyword? field)
-                                   (nil? (get-in s (concat [:query-tree] path [field]))))
-                            (assoc-in s (concat [:query-tree] path [field]) nil)
-                            s))
-                        state
-                        items)})))
+        {:done? false :state (add-leaves state items)})))
 
   (execute [_ state]
     (let [eql (tree->eql (:query-tree state {}))]

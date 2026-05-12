@@ -80,7 +80,7 @@
 ;; Event sending
 ;; ---------------------------------------------------------------------------
 
-(defn- send-with-selection!
+(defn send-with-selection!
   "Send :event/select with the current fzf selection (current + tab-marked)."
   [session-id]
   (let [fzf-s     (try (fzf-client/get-fzf-state) (catch Exception _ nil))
@@ -91,7 +91,7 @@
       (pqsc/send-event-and-await-completion!
        session-id :event/select {:selection selection} 1000))))
 
-(defn- send-bare!
+(defn send-bare!
   "Send a custom event with no payload."
   [session-id event]
   (pqsc/send-event-and-await-completion! session-id event {} 1000))
@@ -101,13 +101,16 @@
 ;; ---------------------------------------------------------------------------
 
 (defn- key-handler
-  "Build the in-process fn for one keybinding. The fn sends the configured
-  event into the chart, then returns the updated :fzf/items so fzf reloads."
-  [session-id event]
+  "Build the in-process fn for one keybinding. `ev-or-fn` is either an event
+  keyword (the framework sends it; :event/select also fills in the fzf
+  selection) or a function (fn [session-id]) for custom multi-step behavior.
+  The handler returns the updated :fzf/items so fzf reloads."
+  [session-id ev-or-fn]
   (fn [_query & _selections]
-    (case event
-      :event/select (send-with-selection! session-id)
-      (send-bare! session-id event))
+    (cond
+      (fn? ev-or-fn)              (ev-or-fn session-id)
+      (= :event/select ev-or-fn)  (send-with-selection! session-id)
+      :else                        (send-bare! session-id ev-or-fn))
     (data-get session-id :fzf/items)))
 
 (def ^:private default-keybindings
