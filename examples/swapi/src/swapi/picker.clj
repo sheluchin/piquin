@@ -1,5 +1,5 @@
 (ns swapi.picker
-  "Interactive SWAPI GraphQL query builder built on piquine.
+  "Interactive SWAPI GraphQL query builder built on piquin.
 
   State shape:
     :path        - vec of attribute keywords; where we are in the query tree
@@ -13,7 +13,7 @@
   (:require
    [clojure.pprint :as pprint]
    [clojure.string :as str]
-   [piquine.picker :as picker]
+   [piquin.picker :as picker]
    [swapi.api :as api]))
 
 (def ^:private root-attrs #{:swapi.types/Root})

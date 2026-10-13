@@ -1,9 +1,9 @@
 (ns swapi.main
   (:require
-   [piquine.fzf.client :as fzf-client]
-   [piquine.fzf.runtime :as rt]
-   [piquine.picker :as picker]
-   [piquine.statecharts :as pqsc]
+   [piquin.fzf.client :as fzf-client]
+   [piquin.fzf.runtime :as rt]
+   [piquin.picker :as picker]
+   [piquin.statecharts :as pqsc]
    [swapi.picker :as sp]
    [taoensso.timbre :as log]))
 

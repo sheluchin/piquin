@@ -22,8 +22,8 @@ A trivial picker that lets you pick one of three colors and prints it:
 
 ```clojure
 (ns my.color-picker
-  (:require [piquine.picker :as picker]
-            [piquine.fzf.runtime :as rt]))
+  (:require [piquin.picker :as picker]
+            [piquin.fzf.runtime :as rt]))
 
 (defrecord ColorPicker []
   picker/Picker
@@ -90,8 +90,8 @@ The boilerplate is the same for every picker:
 
 ```clojure
 (ns my.cli
-  (:require [piquine.picker :as picker]
-            [piquine.fzf.runtime :as rt]
+  (:require [piquin.picker :as picker]
+            [piquin.fzf.runtime :as rt]
             [taoensso.timbre :as log]))
 
 (log/set-min-level! :fatal)   ; silence the statechart's debug logging
@@ -125,11 +125,11 @@ Two things worth flagging:
 
 The examples are short. Read them in this order:
 
-- **[command_menu.clj](../src/piquine/examples/command_menu.clj)** — two-level menu (root → submenu → terminate). Simplest case with
+- **[command_menu.clj](../src/piquin/examples/command_menu.clj)** — two-level menu (root → submenu → terminate). Simplest case with
   navigation and a `:done? true` exit.
-- **[stack_picker.clj](../src/piquine/examples/stack_picker.clj)** — multi-select across sibling categories. Demonstrates accumulating
+- **[stack_picker.clj](../src/piquin/examples/stack_picker.clj)** — multi-select across sibling categories. Demonstrates accumulating
   selections in state, with live count badges in the root view.
-- **[nested_picker.clj](../src/piquine/examples/nested_picker.clj)** — three-level hierarchy. Shows a `← back` sentinel item for
+- **[nested_picker.clj](../src/piquin/examples/nested_picker.clj)** — three-level hierarchy. Shows a `← back` sentinel item for
   navigation up; preview pane shows ROT13 of every collected item.
 
 ## Common recipes
@@ -242,7 +242,7 @@ Same `rt/run!` entry point, same fzf wiring, just a different chart.
 
 ## Reference
 
-- `piquine.picker` — protocol + `picker->statechart` + `picker-preview` helper
-- `piquine.fzf.runtime` — `run!`, `data-get`, `data-snapshot`
-- `piquine.statecharts` — Fulcro statechart wrapper
-- `piquine.fzf.client` — fzf HTTP API helpers (rarely needed in pickers)
+- `piquin.picker` — protocol + `picker->statechart` + `picker-preview` helper
+- `piquin.fzf.runtime` — `run!`, `data-get`, `data-snapshot`
+- `piquin.statecharts` — Fulcro statechart wrapper
+- `piquin.fzf.client` — fzf HTTP API helpers (rarely needed in pickers)

@@ -1,4 +1,4 @@
-(ns piquine.fzf.runtime
+(ns piquin.fzf.runtime
   "Drives any statechart satisfying the fzf contract:
 
     Data-model keys
@@ -18,8 +18,8 @@
   string and EVENT is a keyword. For :event/select the runtime fills in the
   current fzf selection automatically; other events get an empty payload."
   (:require
-   [piquine.fzf.client :as fzf-client]
-   [piquine.statecharts :as pqsc]
+   [piquin.fzf.client :as fzf-client]
+   [piquin.statecharts :as pqsc]
    [com.fulcrologic.statecharts :as sc]
    [com.fulcrologic.statecharts.protocols :as sp]
    [fzf.core :refer [fzf]]))

@@ -1,8 +1,8 @@
-(ns piquine.cli.command-menu
+(ns piquin.cli.nested-picker
   (:require
-   [piquine.examples.command-menu :as cmd-menu]
-   [piquine.fzf.runtime :as rt]
-   [piquine.picker :as picker]
+   [piquin.examples.nested-picker :as nested]
+   [piquin.fzf.runtime :as rt]
+   [piquin.picker :as picker]
    [taoensso.timbre :as log]))
 
 (log/set-min-level! :fatal)
@@ -10,14 +10,16 @@
 (defn -main [& _args]
   (log/set-min-level! :fatal)
   (try
-    (let [p     (cmd-menu/create-command-menu-picker)
-          chart (picker/picker->statechart p {:level :root})
+    (let [p     (nested/create-nested-picker)
+          chart (picker/picker->statechart p {:path [] :collected {}})
           {:keys [state]} (rt/run! chart
-                                    :session-id :command-menu
+                                    :session-id :nested-picker
+                                    :header "Enter: select/navigate  Tab: mark  Ctrl-D: done"
                                     :preview-fn (fn [session-id selection]
                                                   (picker/picker-preview p
                                                                           (rt/data-snapshot session-id [:picker/items :picker/state])
                                                                           selection)))]
+      ;; Called AFTER fzf has fully exited so println output isn't wiped
       (picker/execute p state)
       (shutdown-agents))
     (catch Exception e

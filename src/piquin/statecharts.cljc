@@ -1,4 +1,4 @@
-(ns piquine.statecharts
+(ns piquin.statecharts
   "Thin wrapper around com.fulcrologic/statecharts: session bookkeeping,
   start/stop, and a synchronous send-and-await helper that watches the
   working-memory atom for state changes."

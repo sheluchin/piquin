@@ -1,4 +1,4 @@
-(ns piquine.picker
+(ns piquin.picker
   "Picker protocol and its statechart constructor.
 
   A Picker describes a stateful interactive selection. The protocol's job is to
@@ -13,7 +13,7 @@
     (execute [this state])             -> final result (the run! return value)
 
   Call (picker->statechart picker initial-state) to get a chart. Pass that
-  chart to piquine.fzf.runtime/run! along with any keybindings.
+  chart to piquin.fzf.runtime/run! along with any keybindings.
 
   When a picker outgrows this template (multi-step wizards, async loading,
   parallel selection regions), skip the protocol and hand-roll a statechart

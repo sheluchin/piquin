@@ -1,9 +1,9 @@
-(ns piquine.examples.nested-picker
+(ns piquin.examples.nested-picker
   "Three-level nested multi-select picker over plain alphanumeric items.
   Preview shows ROT13 of each item and the running collection."
   (:require
    [clojure.string :as str]
-   [piquine.picker :as picker]))
+   [piquin.picker :as picker]))
 
 ;; ---------------------------------------------------------------------------
 ;; Data

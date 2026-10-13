@@ -6,7 +6,7 @@
                                      :git/sha "a034c27e99df429a05c0dfb91759eab93aba181f"}}
  :paths ["src"]
  :tasks
- {command-menu (shell "bb -m piquine.cli.command-menu")
-  stack        (shell "bb -m piquine.cli.stack-picker")
-  nested       (shell "bb -m piquine.cli.nested-picker")
+ {command-menu (shell "bb -m piquin.cli.command-menu")
+  stack        (shell "bb -m piquin.cli.stack-picker")
+  nested       (shell "bb -m piquin.cli.nested-picker")
   nrepl        (shell "bb nrepl-server 1999")}}

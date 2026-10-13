@@ -1,4 +1,4 @@
-(ns piquine.fzf.client
+(ns piquin.fzf.client
   "Minimal HTTP client for fzf's --listen API."
   (:require
    [cheshire.core :as cjson]

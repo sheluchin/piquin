@@ -1,9 +1,9 @@
-(ns piquine.examples.command-menu
+(ns piquin.examples.command-menu
   "Two-level menu picker. Root has File/Edit/View/Tools; each submenu has
   individual commands. Selecting a command produces a result and the chart
   terminates."
   (:require
-   [piquine.picker :as picker]))
+   [piquin.picker :as picker]))
 
 (def ^:private command-results
   {"New File"      {:message "Created new file"          :success true}

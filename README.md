@@ -1,4 +1,4 @@
-# piquine
+# piquin
 
 A small Clojure/Babashka framework for building interactive `fzf`-driven
 selectors ("pickers"). Define a picker by implementing a six-method protocol;
@@ -35,8 +35,8 @@ A complete picker in ~15 lines:
 
 ```clojure
 (ns my.color-picker
-  (:require [piquine.picker :as picker]
-            [piquine.fzf.runtime :as rt]))
+  (:require [piquin.picker :as picker]
+            [piquin.fzf.runtime :as rt]))
 
 (defrecord ColorPicker []
   picker/Picker
@@ -93,7 +93,7 @@ updates.
 
 `(picker->statechart your-picker initial-state)` returns a chart with three
 states (`:state/ready`, `:state/handle`, `:state/final`). The chart's
-data-model exposes `:fzf/items` and `:fzf/multi?`. `piquine.fzf.runtime/run!`
+data-model exposes `:fzf/items` and `:fzf/multi?`. `piquin.fzf.runtime/run!`
 launches a single long-lived fzf process and wires fzf keystrokes to
 in-process callbacks that send chart events. Each Enter calls your
 `handle-selection`; when `:done? true` or the user hits Ctrl-D, the chart
@@ -110,8 +110,8 @@ satisfies the same data-model + event contract — same runtime drives it.
 `deps.edn`:
 
 ```clojure
-io.github.sheluchin/piquine
-{:git/url "https://github.com/sheluchin/piquine"
+io.github.sheluchin/piquin
+{:git/url "https://github.com/sheluchin/piquin"
  :git/sha "..."}
 ```
 

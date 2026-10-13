@@ -1,4 +1,4 @@
-(ns piquine.examples.stack-picker
+(ns piquin.examples.stack-picker
   "Multi-select picker across sibling categories.
 
   Flow: pick category, multi-select items, return to category list with a
@@ -8,7 +8,7 @@
   based on whether we are at the root level or inside a category."
   (:require
    [clojure.string :as str]
-   [piquine.picker :as picker]))
+   [piquin.picker :as picker]))
 
 (def categories
   {:auth     "🔐 Auth"

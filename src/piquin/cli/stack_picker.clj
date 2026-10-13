@@ -1,8 +1,8 @@
-(ns piquine.cli.stack-picker
+(ns piquin.cli.stack-picker
   (:require
-   [piquine.examples.stack-picker :as stack]
-   [piquine.fzf.runtime :as rt]
-   [piquine.picker :as picker]
+   [piquin.examples.stack-picker :as stack]
+   [piquin.fzf.runtime :as rt]
+   [piquin.picker :as picker]
    [taoensso.timbre :as log]))
 
 (log/set-min-level! :fatal)
