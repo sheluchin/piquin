@@ -11,6 +11,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   repo `sheluchin/piquine` → `sheluchin/piquin`).
 
 ### Added
+- `run!` options: `:post-actions` (fzf actions sent after each keybinding is
+  handled), `:fzf-args` (extra fzf CLI flags), and `:header-fn`/`:tick-ms`
+  (a header re-rendered on a timer, e.g. for a live clock).
+- `run!` now also returns when fzf exits on its own (killed, crashed,
+  terminal closed) instead of waiting forever.
 - `piquin.picker` — Picker protocol (`get-items`, `format-item`, `preview`,
   `multi-select?`, `handle-selection`, `execute`) and `picker->statechart`
   constructor.

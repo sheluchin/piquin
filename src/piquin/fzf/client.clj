@@ -30,6 +30,15 @@
        :body
        (cjson/parse-string true))))
 
+(defn post-action!
+  "POST an fzf action in-process (no curl spawn); cheap enough to call on a
+  timer. Swallows errors, e.g. when fzf isn't listening yet."
+  ([action] (post-action! (listen-port) action))
+  ([port action]
+   (try
+     @(http/post (str "http://127.0.0.1:" port) {:body action :timeout 500})
+     (catch Exception _ nil))))
+
 (defn send-fzf-command
   "POST an fzf action (or chain like 'pos(1)+toggle') to the listen port."
   [port command-str]

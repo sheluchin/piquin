@@ -18,6 +18,7 @@
   string and EVENT is a keyword. For :event/select the runtime fills in the
   current fzf selection automatically; other events get an empty payload."
   (:require
+   [clojure.string :as str]
    [piquin.fzf.client :as fzf-client]
    [piquin.statecharts :as pqsc]
    [com.fulcrologic.statecharts :as sc]
@@ -59,9 +60,12 @@
   (false? (-> (wmem-atom session-id) deref ::sc/running?)))
 
 (defn- wait-for-final
-  "Block until the chart's wmem flips ::sc/running? to false. Returns the
-  current picker state captured at that moment."
-  [session-id]
+  "Block until the chart's wmem flips ::sc/running? to false, or until
+  `fzf-future` completes (fzf killed, crashed or its terminal closed).
+  Without the second exit, an orphaned run! would keep its header ticker
+  posting to the listen port -- into whichever fzf binds it next.
+  Returns the current picker state captured at that moment."
+  [session-id fzf-future]
   (let [wmem (wmem-atom session-id)
         p    (promise)
         wk   (keyword (gensym "final-watch-"))]
@@ -73,6 +77,9 @@
                      (when (false? (::sc/running? new))
                        (remove-watch a k)
                        (deliver p :done))))
+        (future (try @fzf-future (catch Throwable _ nil))
+                (remove-watch wmem wk)
+                (deliver p :fzf-exited))
         @p))
     {:state (data-get session-id :picker/state)}))
 
@@ -104,13 +111,20 @@
   "Build the in-process fn for one keybinding. `ev-or-fn` is either an event
   keyword (the framework sends it; :event/select also fills in the fzf
   selection) or a function (fn [session-id]) for custom multi-step behavior.
-  The handler returns the updated :fzf/items so fzf reloads."
-  [session-id ev-or-fn]
+  The handler returns the updated :fzf/items so fzf reloads.
+
+  `post-actions` are POSTed to fzf only after the event is handled. Chaining
+  them onto the binding instead would race the handler's selection lookup
+  (e.g. clear-query would move the cursor before we read it)."
+  [session-id ev-or-fn post-actions]
   (fn [_query & _selections]
     (cond
       (fn? ev-or-fn)              (ev-or-fn session-id)
       (= :event/select ev-or-fn)  (send-with-selection! session-id)
       :else                        (send-bare! session-id ev-or-fn))
+    (when (seq post-actions)
+      (fzf-client/send-fzf-command (fzf-client/listen-port)
+                                   (str/join "+" post-actions)))
     (data-get session-id :fzf/items)))
 
 (def ^:private default-keybindings
@@ -118,11 +132,11 @@
    "ctrl-d" :event/done
    "esc"    :event/abort})
 
-(defn- compile-bindings [session-id keybindings]
+(defn- compile-bindings [session-id keybindings post-actions]
   (->> keybindings
        (map (fn [[k ev]]
               [k [{:action-name   "reload"
-                   :in-process-fn (key-handler session-id ev)}]]))
+                   :in-process-fn (key-handler session-id ev post-actions)}]]))
        (into {})))
 
 ;; ---------------------------------------------------------------------------
@@ -142,6 +156,23 @@
         (preview-fn session-id selection)))))
 
 ;; ---------------------------------------------------------------------------
+;; Live header
+;; ---------------------------------------------------------------------------
+
+(defn- start-header-ticker!
+  "Re-send the header every `tick-ms` until the chart finishes. Only POSTs
+  when the text changed."
+  [session-id header-fn tick-ms]
+  (future
+    (loop [last-sent nil]
+      (when-not (done? session-id)
+        (let [h (try (header-fn session-id) (catch Exception _ last-sent))]
+          (when (and h (not= h last-sent))
+            (fzf-client/post-action! (str "change-header:" h)))
+          (Thread/sleep tick-ms)
+          (recur h))))))
+
+;; ---------------------------------------------------------------------------
 ;; Public: run!
 ;; ---------------------------------------------------------------------------
 
@@ -151,11 +182,18 @@
     :keybindings - {fzf-key event-keyword}; merged on top of default-keybindings
     :preview-fn  - (fn [session-id selection]) -> string for the preview pane
     :header      - fzf header string
+    :post-actions - fzf actions sent after every keybinding is handled,
+                    e.g. [\"clear-query\" \"first\"]
+    :fzf-args    - extra raw fzf CLI args, e.g. [\"--color=hl:blue\"]
+    :header-fn   - (fn [session-id]) -> header string, re-sent to fzf every
+                   :tick-ms (default 100) for live headers such as timers
 
   Returns {:state picker-state}. fzf is launched in the calling process's
   terminal; the call blocks until the chart enters a final state."
-  [chart & {:keys [session-id keybindings preview-fn header]
-            :or   {session-id (keyword (gensym "picker-"))}}]
+  [chart & {:keys [session-id keybindings preview-fn header post-actions fzf-args
+                  header-fn tick-ms]
+            :or   {session-id (keyword (gensym "picker-"))
+                   tick-ms    100}}]
   (pqsc/start-new-sc! session-id session-id chart)
   (let [port        (fzf-client/free-port)
         _           (fzf-client/set-listen-port! port)
@@ -163,16 +201,19 @@
         items       (data-get session-id :fzf/items)
         multi?      (boolean (data-get session-id :fzf/multi?))
         fzf-opts    (cond-> {:multi multi?
-                             :command-bindings (compile-bindings session-id bindings)
-                             :additional-raw-args [(str "--listen=" port)]}
+                             :command-bindings (compile-bindings session-id bindings post-actions)
+                             :additional-raw-args (into [(str "--listen=" port)] fzf-args)}
                       header     (assoc :header {:header-str header})
                       preview-fn (assoc :preview-fn (compile-preview session-id preview-fn)))
-        fzf-future  (future (fzf fzf-opts items))]
+        fzf-future  (future (fzf fzf-opts items))
+        ticker      (when header-fn (start-header-ticker! session-id header-fn tick-ms))]
     (try
-      (let [result (wait-for-final session-id)]
-        ;; Tell fzf to exit so its future completes
-        (fzf-client/send-fzf-command port "abort")
+      (let [result (wait-for-final session-id fzf-future)]
+        ;; Tell fzf to exit so its future completes (unless it already has)
+        (when-not (realized? fzf-future)
+          (fzf-client/send-fzf-command port "abort"))
         (try @fzf-future (catch Exception _ nil))
         result)
       (finally
+        (some-> ticker future-cancel)
         (pqsc/stop-sc! session-id)))))
