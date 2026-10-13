@@ -157,19 +157,21 @@
   [chart & {:keys [session-id keybindings preview-fn header]
             :or   {session-id (keyword (gensym "picker-"))}}]
   (pqsc/start-new-sc! session-id session-id chart)
-  (let [bindings    (merge default-keybindings (or keybindings {}))
+  (let [port        (fzf-client/free-port)
+        _           (fzf-client/set-listen-port! port)
+        bindings    (merge default-keybindings (or keybindings {}))
         items       (data-get session-id :fzf/items)
         multi?      (boolean (data-get session-id :fzf/multi?))
         fzf-opts    (cond-> {:multi multi?
                              :command-bindings (compile-bindings session-id bindings)
-                             :additional-raw-args ["--listen=9878"]}
+                             :additional-raw-args [(str "--listen=" port)]}
                       header     (assoc :header {:header-str header})
                       preview-fn (assoc :preview-fn (compile-preview session-id preview-fn)))
         fzf-future  (future (fzf fzf-opts items))]
     (try
       (let [result (wait-for-final session-id)]
         ;; Tell fzf to exit so its future completes
-        (fzf-client/send-fzf-command (str fzf-client/fzf-listen-port) "abort")
+        (fzf-client/send-fzf-command port "abort")
         (try @fzf-future (catch Exception _ nil))
         result)
       (finally

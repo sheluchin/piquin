@@ -5,12 +5,26 @@
    [clojure.java.shell :as shell]
    [org.httpkit.client :as http]))
 
-(defonce fzf-listen-port "9878")
+(defonce ^:private active-port (atom nil))
+
+(defn listen-port
+  "Port of the fzf that piquin.fzf.runtime/run! is currently driving."
+  []
+  @active-port)
+
+(defn set-listen-port! [port] (reset! active-port port))
+
+(defn free-port
+  "Ask the OS for an unused local port. Each run! gets its own, so two
+  pickers (or a stale process from an earlier run) never share one."
+  []
+  (with-open [s (java.net.ServerSocket. 0)]
+    (.getLocalPort s)))
 
 (defn get-fzf-state
   "Returns fzf's current state as a Clojure map: {:query :current :selected
   :matches :totalCount ...}. fzf must have been launched with --listen=PORT."
-  ([] (get-fzf-state fzf-listen-port))
+  ([] (get-fzf-state (listen-port)))
   ([port]
    (-> @(http/get (str "http://localhost:" port))
        :body
