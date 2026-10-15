@@ -80,6 +80,14 @@
 ;; Event sending
 ;; ---------------------------------------------------------------------------
 
+;; How long to wait for the chart to finish processing an event before
+;; reading :fzf/items for the reload. Handlers may do real work (network
+;; fetches) when computing the next level's items — timing out early makes
+;; the key-handler reload fzf with STALE items, which looks like the menu
+;; "refusing" to navigate. Generous by design; fzf blocks harmlessly while
+;; waiting.
+(def ^:private event-await-timeout-ms 15000)
+
 (defn send-with-selection!
   "Send :event/select with the current fzf selection (current + tab-marked)."
   [session-id]
@@ -89,12 +97,12 @@
         selection (vec (remove nil? (distinct (cons current marked))))]
     (when (seq selection)
       (pqsc/send-event-and-await-completion!
-       session-id :event/select {:selection selection} 1000))))
+       session-id :event/select {:selection selection} event-await-timeout-ms))))
 
 (defn send-bare!
   "Send a custom event with no payload."
   [session-id event]
-  (pqsc/send-event-and-await-completion! session-id event {} 1000))
+  (pqsc/send-event-and-await-completion! session-id event {} event-await-timeout-ms))
 
 ;; ---------------------------------------------------------------------------
 ;; Keybindings -> fzf in-process callbacks
@@ -104,25 +112,32 @@
   "Build the in-process fn for one keybinding. `ev-or-fn` is either an event
   keyword (the framework sends it; :event/select also fills in the fzf
   selection) or a function (fn [session-id]) for custom multi-step behavior.
-  The handler returns the updated :fzf/items so fzf reloads."
-  [session-id ev-or-fn]
+  The handler returns the updated :fzf/items so fzf reloads.
+
+  When `clear-query?` is set and the chart is still running after the event
+  (i.e. the picker navigated rather than finished), the fzf query is cleared
+  so the next menu level starts with an empty filter."
+  [session-id ev-or-fn clear-query?]
   (fn [_query & _selections]
     (cond
       (fn? ev-or-fn)              (ev-or-fn session-id)
       (= :event/select ev-or-fn)  (send-with-selection! session-id)
       :else                        (send-bare! session-id ev-or-fn))
+    (when (and clear-query? (not (done? session-id)))
+      (fzf-client/send-fzf-command fzf-client/fzf-listen-port "clear-query"))
     (data-get session-id :fzf/items)))
 
 (def ^:private default-keybindings
   {"enter"  :event/select
+   "ctrl-b" :event/back
    "ctrl-d" :event/done
    "esc"    :event/abort})
 
-(defn- compile-bindings [session-id keybindings]
+(defn- compile-bindings [session-id keybindings clear-query?]
   (->> keybindings
        (map (fn [[k ev]]
               [k [{:action-name   "reload"
-                   :in-process-fn (key-handler session-id ev)}]]))
+                   :in-process-fn (key-handler session-id ev clear-query?)}]]))
        (into {})))
 
 ;; ---------------------------------------------------------------------------
@@ -151,18 +166,24 @@
     :keybindings - {fzf-key event-keyword}; merged on top of default-keybindings
     :preview-fn  - (fn [session-id selection]) -> string for the preview pane
     :header      - fzf header string
+    :fzf-args    - extra raw fzf args
+    :clear-query-on-event? - when true, clear the typed fzf query after any
+                             bound event that leaves the picker running
+                             (menu navigation, back, etc.)
 
   Returns {:state picker-state}. fzf is launched in the calling process's
   terminal; the call blocks until the chart enters a final state."
-  [chart & {:keys [session-id keybindings preview-fn header]
+  [chart & {:keys [session-id keybindings preview-fn header fzf-args
+                   clear-query-on-event?]
             :or   {session-id (keyword (gensym "picker-"))}}]
   (pqsc/start-new-sc! session-id session-id chart)
   (let [bindings    (merge default-keybindings (or keybindings {}))
         items       (data-get session-id :fzf/items)
         multi?      (boolean (data-get session-id :fzf/multi?))
         fzf-opts    (cond-> {:multi multi?
-                             :command-bindings (compile-bindings session-id bindings)
-                             :additional-raw-args ["--listen=9878"]}
+                             :command-bindings (compile-bindings session-id bindings
+                                                                 clear-query-on-event?)
+                             :additional-raw-args (into ["--listen=9878"] fzf-args)}
                       header     (assoc :header {:header-str header})
                       preview-fn (assoc :preview-fn (compile-preview session-id preview-fn)))
         fzf-future  (future (fzf fzf-opts items))]

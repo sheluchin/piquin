@@ -37,6 +37,9 @@
   (handle-selection [this selected-items state])
   (execute         [this state]))
 
+(defprotocol BackablePicker
+  (go-back [this state]))
+
 ;; ---------------------------------------------------------------------------
 ;; Selection plumbing
 ;; ---------------------------------------------------------------------------
@@ -77,6 +80,18 @@
        (ops/assign :picker/items (:picker/items view))
        (ops/assign :fzf/items   (:fzf/items view))])))
 
+(defn- H-go-back [picker]
+  (fn [_env data]
+    (let [state     (:picker/state data)
+          new-state (if (satisfies? BackablePicker picker)
+                      (go-back picker state)
+                      state)
+          view      (compute-view picker new-state)]
+      [(ops/assign :picker/state new-state)
+       (ops/assign :picker/done? false)
+       (ops/assign :picker/items (:picker/items view))
+       (ops/assign :fzf/items   (:fzf/items view))])))
+
 (defn- C-done? [_env data] (boolean (:picker/done? data)))
 (defn- C-not-done? [_env data] (not (boolean (:picker/done? data))))
 
@@ -103,6 +118,8 @@
       (state {:id :state/ready}
              (transition {:event :event/select :target :state/handle}
                          (script {:expr (H-handle-selection picker)}))
+             (transition {:event :event/back :target :state/handle}
+                         (script {:expr (H-go-back picker)}))
              (transition {:event :event/done :target :state/final})
              (transition {:event :event/abort :target :state/final}))
 
